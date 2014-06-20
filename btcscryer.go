@@ -12,7 +12,19 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+    "time"
 )
+
+func mempoolPoll(cli *btcrpcclient.Client) {
+    for {
+        hashes, err := cli.GetRawMempool()
+        if err != nil {
+            log.Fatal(err)
+        }
+        log.Printf("Mempool size: %d", len(hashes))
+        time.Sleep(10 * time.Second)
+    }
+}
 
 func main() {
 	// Only override the handlers for notifications you care about.
@@ -66,6 +78,19 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Block count: %d", blockCount)
+
+    txHash, err := btcwire.NewShaHashFromStr("9e4cca76c166d0c165709ee656056e89fa7a493f7fb7d80e2ba4dbeef098f066")
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Println("txhash: %v", txHash)
+    rawTx, err := client.GetRawTransactionVerbose(txHash)
+    if err != nil {
+        log.Fatal(err)
+    }
+    log.Printf("Found tx with hash %s, contains %d outputs.", txHash, len(rawTx.Vout))
+
+    go mempoolPoll(client)
 
 	// Wait until the client either shuts down gracefully (or the user
 	// terminates the process with Ctrl+C).
