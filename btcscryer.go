@@ -13,6 +13,9 @@ import (
 	"log"
 	"path/filepath"
     "time"
+    "os"
+    "strconv"
+    "sync"
 )
 
 func mempoolPoll(cli *btcrpcclient.Client) {
@@ -27,6 +30,8 @@ func mempoolPoll(cli *btcrpcclient.Client) {
 }
 
 func main() {
+
+    dsFileMtx := sync.Mutex{}
 	// Only override the handlers for notifications you care about.
 	// Also note most of these handlers will only be called if you register
 	// for notifications.  See the documentation of the btcrpcclient
@@ -40,6 +45,21 @@ func main() {
 		},
         OnTxAcceptedVerbose: func(txDetails *btcjson.TxRawResult) {
             log.Printf("Tx Mempooled: %s", txDetails.Txid)
+        },
+        OnTxDoubleSpent: func(mempoolTxHash *btcwire.ShaHash, incomingTxHash *btcwire.ShaHash, isInBlock bool) {
+            dsFileMtx.Lock()
+            defer dsFileMtx.Unlock()
+            log.Println(mempoolTxHash.String() + "," + incomingTxHash.String() + "," + strconv.FormatBool(isInBlock))
+
+            f, err := os.OpenFile(filepath.Join("/Users/kking/logs", "doublespends.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+            if err != nil {
+                log.Printf("Error opening doublespend file: %v", err)
+            }
+            defer f.Close()
+
+            if _, err = f.WriteString(mempoolTxHash.String() + "," + incomingTxHash.String() + "," + strconv.FormatBool(isInBlock) + "\n"); err != nil {
+                log.Printf("Error writing doublespend file: %v", err)
+            }
         },
 	}
 
@@ -83,7 +103,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    log.Println("txhash: %v", txHash)
+    log.Printf("txhash: %v", txHash)
     rawTx, err := client.GetRawTransactionVerbose(txHash)
     if err != nil {
         log.Fatal(err)
