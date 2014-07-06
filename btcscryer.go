@@ -31,6 +31,8 @@ func mempoolPoll(cli *btcrpcclient.Client) {
 
 func main() {
 
+    // Logging directory
+	btcdHomeDir := btcutil.AppDataDir("btcd", false)
     dsFileMtx := sync.Mutex{}
 	// Only override the handlers for notifications you care about.
 	// Also note most of these handlers will only be called if you register
@@ -51,7 +53,7 @@ func main() {
             defer dsFileMtx.Unlock()
             log.Println(mempoolTxHash.String() + "," + incomingTxHash.String() + "," + strconv.FormatBool(isInBlock))
 
-            f, err := os.OpenFile(filepath.Join("/Users/kking/logs", "doublespends.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+            f, err := os.OpenFile(filepath.Join(btcdHomeDir, "doublespends.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
             if err != nil {
                 log.Printf("Error opening doublespend file: %v", err)
             }
@@ -64,7 +66,7 @@ func main() {
 	}
 
 	// Connect to local btcd RPC server using websockets.
-	btcdHomeDir := btcutil.AppDataDir("btcd", false)
+    log.Println("Logging double spends to " + btcdHomeDir)
 	certs, err := ioutil.ReadFile(filepath.Join(btcdHomeDir, "rpc.cert"))
 	if err != nil {
 		log.Fatal(err)
