@@ -56,6 +56,7 @@ func main() {
 			f, err := os.OpenFile(filepath.Join(btcdHomeDir, "doublespends.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
 			if err != nil {
 				log.Printf("Error opening doublespend file: %v", err)
+				return
 			}
 			defer f.Close()
 
